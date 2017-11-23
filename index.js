@@ -6,12 +6,13 @@ const express = require('express')
 const app = express()
 
 const designDocs = require('./design_documents/')
+const miner = require('./miner')
 
 const CURRENT_DB_VERSION = 1
 
 winston.level = process.env.LOG_LEVEL || 'debug'
 
-var db = new PouchDB('coin')
+var db = new PouchDB('ledger')
 db.on('created', function(dbName) {
   winston.debug('db', `Opened database`)
 
@@ -35,7 +36,8 @@ function createDb() {
   Promise.all([
     db.put({
       _id: 'info',
-      version: CURRENT_DB_VERSION
+      version: CURRENT_DB_VERSION,
+      epoch: 0
     })
       .then(() => {
         winston.debug('db', 'Descriptor created')
@@ -166,6 +168,10 @@ processTransaction({
 
     ]
    }
+})
+
+miner.mine(db).catch(err => {
+  winston.error('miner', err)
 })
 
 db.query('txs/unconfirmed')
